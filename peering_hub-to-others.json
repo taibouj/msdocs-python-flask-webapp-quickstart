@@ -1,0 +1,373 @@
+/*
+-------------------------------------------------------------------------------------------------------------------------------
+Programme : cree des peering du hub vers les autres vnet   
+Type : JSON
+But : Ce programme permet de créer trois peering du hub centrale vers les autres vnets pour etablire une possibilité de connection 
+entre les composant de chaque vnet 
+Nom : peering_hub-to-others.json
+Version : 1.0
+Auteur : Taibou Judith
+Date : 21/03/2025
+
+prérequis :
+- Un abonnement Azure valide
+- Un groupe de ressources Azure valide
+- peer vers le reseaux   "10.0.0.0/16" ,"10.1.0.0/16" , "10.2.0.0/24" , "10.3.0.0/24"
+- Remplier les paramètres de configuration selon les besoins
+
+Attention : Ceci est une simulation de conectivité reseaux dans Azure uniquement
+          
+---------------------------------------------------------------------------------------------------------------------------------
+*/
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vnet_hub_poc_fce_1_name": {
+            "defaultValue": "vnet-hub-poc-fce-1",
+            "type": "String"
+        },
+        "networkSecurityGroups_vnet_hub_poc_fce_1_subnet_waf_poc_fce_1_nsg_francecentral_externalid": {
+            "defaultValue": "/subscriptions/7445ae6f-a879-4d74-9a49-eebda848dc6c/resourceGroups/rg-armdemo-poc-fce-1/providers/Microsoft.Network/networkSecurityGroups/vnet-hub-poc-fce-1-subnet-waf-poc-fce-1-nsg-francecentral",
+            "type": "String"
+        },
+        "networkSecurityGroups_vnet_hub_poc_fce_1_subnet_proxy_poc_fce_1_nsg_francecentral_externalid": {
+            "defaultValue": "/subscriptions/7445ae6f-a879-4d74-9a49-eebda848dc6c/resourceGroups/rg-armdemo-poc-fce-1/providers/Microsoft.Network/networkSecurityGroups/vnet-hub-poc-fce-1-subnet-proxy-poc-fce-1-nsg-francecentral",
+            "type": "String"
+        },
+        "networkSecurityGroups_vnet_hub_poc_fce_1_b36_appgwsubnet_nsg_francecentral_externalid": {
+            "defaultValue": "/subscriptions/7445ae6f-a879-4d74-9a49-eebda848dc6c/resourceGroups/rg-armdemo-poc-fce-1/providers/Microsoft.Network/networkSecurityGroups/vnet-hub-poc-fce-1-b36-appgwsubnet-nsg-francecentral",
+            "type": "String"
+        },
+        "applicationGateways_appgateway_hub_poc_fce_1_externalid": {
+            "defaultValue": "/subscriptions/7445ae6f-a879-4d74-9a49-eebda848dc6c/resourceGroups/RG-Armdemo-POC-fce-1/providers/Microsoft.Network/applicationGateways/appgateway-hub-poc-fce-1",
+            "type": "String"
+        },
+        "vnet_internet_poc_fce_1_externalid": {
+            "defaultValue": "/subscriptions/7445ae6f-a879-4d74-9a49-eebda848dc6c/resourceGroups/rg-armdemo-poc-fce-1/providers/Microsoft.Network/virtualNetworks/vnet-internet-poc-fce-1",
+            "type": "String"
+        },
+        "vnet_applications_poc_fce_1_externalid": {
+            "defaultValue": "/subscriptions/7445ae6f-a879-4d74-9a49-eebda848dc6c/resourceGroups/rg-armdemo-poc-fce-1/providers/Microsoft.Network/virtualNetworks/vnet-applications-poc-fce-1",
+            "type": "String"
+        },
+        "vnet_onpremise_poc_fce_1_externalid": {
+            "defaultValue": "/subscriptions/7445ae6f-a879-4d74-9a49-eebda848dc6c/resourceGroups/RG-Armdemo-POC-fce-1/providers/Microsoft.Network/virtualNetworks/vnet-onpremise-poc-fce-1",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2024-05-01",
+            "name": "[parameters('vnet_hub_poc_fce_1_name')]",
+            "location": "francecentral",
+            "tags": {
+                "displayName": "Vnet-hub"
+            },
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "10.1.0.0/16"
+                    ]
+                },
+                "privateEndpointVNetPolicies": "Disabled",
+                "dhcpOptions": {
+                    "dnsServers": []
+                },
+                "subnets": [
+                    {
+                        "name": "subnet-waf-poc-fce-1",
+                        "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnet_hub_poc_fce_1_name'), 'subnet-waf-poc-fce-1')]",
+                        "properties": {
+                            "addressPrefix": "10.1.1.0/24",
+                            "networkSecurityGroup": {
+                                "id": "[parameters('networkSecurityGroups_vnet_hub_poc_fce_1_subnet_waf_poc_fce_1_nsg_francecentral_externalid')]"
+                            },
+                            "serviceEndpoints": [],
+                            "delegations": [],
+                            "privateEndpointNetworkPolicies": "Enabled",
+                            "privateLinkServiceNetworkPolicies": "Enabled"
+                        },
+                        "type": "Microsoft.Network/virtualNetworks/subnets"
+                    },
+                    {
+                        "name": "subnet-proxy-poc-fce-1",
+                        "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnet_hub_poc_fce_1_name'), 'subnet-proxy-poc-fce-1')]",
+                        "properties": {
+                            "addressPrefix": "10.1.2.0/24",
+                            "networkSecurityGroup": {
+                                "id": "[parameters('networkSecurityGroups_vnet_hub_poc_fce_1_subnet_proxy_poc_fce_1_nsg_francecentral_externalid')]"
+                            },
+                            "serviceEndpoints": [],
+                            "delegations": [],
+                            "privateEndpointNetworkPolicies": "Disabled",
+                            "privateLinkServiceNetworkPolicies": "Enabled"
+                        },
+                        "type": "Microsoft.Network/virtualNetworks/subnets"
+                    },
+                    {
+                        "name": "b36-appgwsubnet",
+                        "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnet_hub_poc_fce_1_name'), 'b36-appgwsubnet')]",
+                        "properties": {
+                            "addressPrefix": "10.1.0.0/24",
+                            "networkSecurityGroup": {
+                                "id": "[parameters('networkSecurityGroups_vnet_hub_poc_fce_1_b36_appgwsubnet_nsg_francecentral_externalid')]"
+                            },
+                            "applicationGatewayIPConfigurations": [
+                                {
+                                    "id": "[concat(parameters('applicationGateways_appgateway_hub_poc_fce_1_externalid'), '/gatewayIPConfigurations/appgateway-hub-poc-fce-1-gatewayIpConfig01')]"
+                                }
+                            ],
+                            "serviceEndpoints": [],
+                            "delegations": [],
+                            "privateEndpointNetworkPolicies": "Disabled",
+                            "privateLinkServiceNetworkPolicies": "Enabled"
+                        },
+                        "type": "Microsoft.Network/virtualNetworks/subnets"
+                    }
+                ],
+                "virtualNetworkPeerings": [
+                    {
+                        "name": "peeringlocallink_hub_internet",
+                        "id": "[resourceId('Microsoft.Network/virtualNetworks/virtualNetworkPeerings', parameters('vnet_hub_poc_fce_1_name'), 'peeringlocallink_hub_internet')]",
+                        "properties": {
+                            "peeringState": "Connected",
+                            "peeringSyncLevel": "FullyInSync",
+                            "remoteVirtualNetwork": {
+                                "id": "[parameters('vnet_internet_poc_fce_1_externalid')]"
+                            },
+                            "allowVirtualNetworkAccess": true,
+                            "allowForwardedTraffic": true,
+                            "allowGatewayTransit": false,
+                            "useRemoteGateways": false,
+                            "doNotVerifyRemoteGateways": false,
+                            "peerCompleteVnets": true,
+                            "remoteAddressSpace": {
+                                "addressPrefixes": [
+                                    "10.3.0.0/16"
+                                ]
+                            },
+                            "remoteVirtualNetworkAddressSpace": {
+                                "addressPrefixes": [
+                                    "10.3.0.0/16"
+                                ]
+                            }
+                        },
+                        "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings"
+                    },
+                    {
+                        "name": "peeringlocal_hub_app",
+                        "id": "[resourceId('Microsoft.Network/virtualNetworks/virtualNetworkPeerings', parameters('vnet_hub_poc_fce_1_name'), 'peeringlocal_hub_app')]",
+                        "properties": {
+                            "peeringState": "Connected",
+                            "peeringSyncLevel": "FullyInSync",
+                            "remoteVirtualNetwork": {
+                                "id": "[parameters('vnet_applications_poc_fce_1_externalid')]"
+                            },
+                            "allowVirtualNetworkAccess": true,
+                            "allowForwardedTraffic": true,
+                            "allowGatewayTransit": false,
+                            "useRemoteGateways": false,
+                            "doNotVerifyRemoteGateways": false,
+                            "peerCompleteVnets": true,
+                            "remoteAddressSpace": {
+                                "addressPrefixes": [
+                                    "10.0.0.0/16"
+                                ]
+                            },
+                            "remoteVirtualNetworkAddressSpace": {
+                                "addressPrefixes": [
+                                    "10.0.0.0/16"
+                                ]
+                            }
+                        },
+                        "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings"
+                    },
+                    {
+                        "name": "peeringlinklocal_hub_onprem",
+                        "id": "[resourceId('Microsoft.Network/virtualNetworks/virtualNetworkPeerings', parameters('vnet_hub_poc_fce_1_name'), 'peeringlinklocal_hub_onprem')]",
+                        "properties": {
+                            "peeringState": "Connected",
+                            "peeringSyncLevel": "FullyInSync",
+                            "remoteVirtualNetwork": {
+                                "id": "[parameters('vnet_onpremise_poc_fce_1_externalid')]"
+                            },
+                            "allowVirtualNetworkAccess": true,
+                            "allowForwardedTraffic": true,
+                            "allowGatewayTransit": false,
+                            "useRemoteGateways": false,
+                            "doNotVerifyRemoteGateways": false,
+                            "peerCompleteVnets": true,
+                            "remoteAddressSpace": {
+                                "addressPrefixes": [
+                                    "10.2.0.0/16"
+                                ]
+                            },
+                            "remoteVirtualNetworkAddressSpace": {
+                                "addressPrefixes": [
+                                    "10.2.0.0/16"
+                                ]
+                            }
+                        },
+                        "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings"
+                    }
+                ],
+                "enableDdosProtection": false
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "apiVersion": "2024-05-01",
+            "name": "[concat(parameters('vnet_hub_poc_fce_1_name'), '/b36-appgwsubnet')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnet_hub_poc_fce_1_name'))]"
+            ],
+            "properties": {
+                "addressPrefix": "10.1.0.0/24",
+                "networkSecurityGroup": {
+                    "id": "[parameters('networkSecurityGroups_vnet_hub_poc_fce_1_b36_appgwsubnet_nsg_francecentral_externalid')]"
+                },
+                "applicationGatewayIPConfigurations": [
+                    {
+                        "id": "[concat(parameters('applicationGateways_appgateway_hub_poc_fce_1_externalid'), '/gatewayIPConfigurations/appgateway-hub-poc-fce-1-gatewayIpConfig01')]"
+                    }
+                ],
+                "serviceEndpoints": [],
+                "delegations": [],
+                "privateEndpointNetworkPolicies": "Disabled",
+                "privateLinkServiceNetworkPolicies": "Enabled"
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "apiVersion": "2024-05-01",
+            "name": "[concat(parameters('vnet_hub_poc_fce_1_name'), '/subnet-proxy-poc-fce-1')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnet_hub_poc_fce_1_name'))]"
+            ],
+            "properties": {
+                "addressPrefix": "10.1.2.0/24",
+                "networkSecurityGroup": {
+                    "id": "[parameters('networkSecurityGroups_vnet_hub_poc_fce_1_subnet_proxy_poc_fce_1_nsg_francecentral_externalid')]"
+                },
+                "serviceEndpoints": [],
+                "delegations": [],
+                "privateEndpointNetworkPolicies": "Disabled",
+                "privateLinkServiceNetworkPolicies": "Enabled"
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "apiVersion": "2024-05-01",
+            "name": "[concat(parameters('vnet_hub_poc_fce_1_name'), '/subnet-waf-poc-fce-1')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnet_hub_poc_fce_1_name'))]"
+            ],
+            "properties": {
+                "addressPrefix": "10.1.1.0/24",
+                "networkSecurityGroup": {
+                    "id": "[parameters('networkSecurityGroups_vnet_hub_poc_fce_1_subnet_waf_poc_fce_1_nsg_francecentral_externalid')]"
+                },
+                "serviceEndpoints": [],
+                "delegations": [],
+                "privateEndpointNetworkPolicies": "Enabled",
+                "privateLinkServiceNetworkPolicies": "Enabled"
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+            "apiVersion": "2024-05-01",
+            "name": "[concat(parameters('vnet_hub_poc_fce_1_name'), '/peeringlinklocal_hub_onprem')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnet_hub_poc_fce_1_name'))]"
+            ],
+            "properties": {
+                "peeringState": "Connected",
+                "peeringSyncLevel": "FullyInSync",
+                "remoteVirtualNetwork": {
+                    "id": "[parameters('vnet_onpremise_poc_fce_1_externalid')]"
+                },
+                "allowVirtualNetworkAccess": true,
+                "allowForwardedTraffic": true,
+                "allowGatewayTransit": false,
+                "useRemoteGateways": false,
+                "doNotVerifyRemoteGateways": false,
+                "peerCompleteVnets": true,
+                "remoteAddressSpace": {
+                    "addressPrefixes": [
+                        "10.2.0.0/16"
+                    ]
+                },
+                "remoteVirtualNetworkAddressSpace": {
+                    "addressPrefixes": [
+                        "10.2.0.0/16"
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+            "apiVersion": "2024-05-01",
+            "name": "[concat(parameters('vnet_hub_poc_fce_1_name'), '/peeringlocal_hub_app')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnet_hub_poc_fce_1_name'))]"
+            ],
+            "properties": {
+                "peeringState": "Connected",
+                "peeringSyncLevel": "FullyInSync",
+                "remoteVirtualNetwork": {
+                    "id": "[parameters('vnet_applications_poc_fce_1_externalid')]"
+                },
+                "allowVirtualNetworkAccess": true,
+                "allowForwardedTraffic": true,
+                "allowGatewayTransit": false,
+                "useRemoteGateways": false,
+                "doNotVerifyRemoteGateways": false,
+                "peerCompleteVnets": true,
+                "remoteAddressSpace": {
+                    "addressPrefixes": [
+                        "10.0.0.0/16"
+                    ]
+                },
+                "remoteVirtualNetworkAddressSpace": {
+                    "addressPrefixes": [
+                        "10.0.0.0/16"
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+            "apiVersion": "2024-05-01",
+            "name": "[concat(parameters('vnet_hub_poc_fce_1_name'), '/peeringlocallink_hub_internet')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnet_hub_poc_fce_1_name'))]"
+            ],
+            "properties": {
+                "peeringState": "Connected",
+                "peeringSyncLevel": "FullyInSync",
+                "remoteVirtualNetwork": {
+                    "id": "[parameters('vnet_internet_poc_fce_1_externalid')]"
+                },
+                "allowVirtualNetworkAccess": true,
+                "allowForwardedTraffic": true,
+                "allowGatewayTransit": false,
+                "useRemoteGateways": false,
+                "doNotVerifyRemoteGateways": false,
+                "peerCompleteVnets": true,
+                "remoteAddressSpace": {
+                    "addressPrefixes": [
+                        "10.3.0.0/16"
+                    ]
+                },
+                "remoteVirtualNetworkAddressSpace": {
+                    "addressPrefixes": [
+                        "10.3.0.0/16"
+                    ]
+                }
+            }
+        }
+    ]
+}
